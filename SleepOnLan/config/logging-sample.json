@@ -1,0 +1,47 @@
+﻿{
+  "Serilog": {
+    "LevelSwitches": {
+      "$consoleSwitch": "Verbose",
+      "$fileSwitch": "Verbose",
+      "$seqSwitch": "Verbose"
+    },
+    "Using": [ "Serilog.Sinks.Console", "Serilog.Sinks.File", "Serilog.Sinks.Seq" ],
+    "MinimumLevel": {
+      "Default": "Verbose",
+      "Override": {
+        "System": "Debug",
+        "Microsoft": "Debug",
+        "Microsoft.Hosting.Lifetime": "Information"
+      }
+    },
+    "WriteTo": [
+      {
+        "Name": "Console",
+        "Args": {
+          "levelSwitch": "$consoleSwitch"
+        }
+      },
+      {
+        "Name": "File",
+        "Args": {
+          "path": "Logs/SleepOnLan-.log",
+          "retainedFileCountLimit": 10,
+          "rollingInterval": "Day",
+          "levelSwitch": "$fileSwitch"
+        }
+      },
+      {
+        "Name": "Seq",
+        "Args": {
+          "serverUrl": "https://localhost/seq",
+          "apiKey": "abcdefgh12345678",
+          "levelSwitch": "$seqSwitch"
+        }
+      }
+    ],
+    "Enrich": [ "FromLogContext", "WithMachineName", "WithEnvironmentName", "WithThreadId" ],
+    "Properties": {
+      "ApplicationName": "SleepOnLan"
+    }
+  }
+}
