@@ -1,0 +1,12 @@
+[Unit]
+Description=Sleep On Lan
+After=network.target
+
+[Service]
+ExecStart=/usr/local/SleepOnLan/SleepOnLan
+Type=exec
+Restart=always
+
+[Install]
+WantedBy=default.target
+RequiredBy=network.target
