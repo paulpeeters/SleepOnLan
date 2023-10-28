@@ -370,8 +370,9 @@ FodyWeavers.xsd
 .editorconfig
 
 # (Temporary) exclude 
-/TemporaryStuff/
-/docker-compose/
+**/NotLongerNeeded/
+**/TemporaryStuff/
+**/docker-compose/
 /SendUDPPacket/
-/sleep-on-lan-master/
-/SleepOnLan/Extensions/System.Threading.Task.cs
+**/sleep-on-lan-master/
+

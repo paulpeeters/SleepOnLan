@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Worker">
 
 	<PropertyGroup>
-		<TargetFramework>net6.0</TargetFramework>
+		<TargetFramework>net7.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<AssemblyVersion>1.0.0.1</AssemblyVersion>
@@ -9,14 +9,26 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<Compile Remove="NotLongerNeeded\**" />
 		<Compile Remove="_not_used\**" />
+		<Content Remove="NotLongerNeeded\**" />
 		<Content Remove="_not_used\**" />
+		<EmbeddedResource Remove="NotLongerNeeded\**" />
 		<EmbeddedResource Remove="_not_used\**" />
+		<None Remove="NotLongerNeeded\**" />
 		<None Remove="_not_used\**" />
 	</ItemGroup>
 
 	<ItemGroup>
 	  <Compile Remove="Services\Worker.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <_WebToolingArtifacts Remove="Properties\launchSettings.json" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Content Include="Properties\launchSettings.json" />
 	</ItemGroup>
 
 	<ItemGroup>

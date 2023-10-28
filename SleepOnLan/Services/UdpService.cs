@@ -73,11 +73,12 @@ namespace SleepOnLan
             using UdpClient listener = new UdpClient(udpPort);
             _logger.LogInformation("Started listining on UDP port {UdpPort}", udpPort);
 
+            stoppingToken.ThrowIfCancellationRequested();
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
-                    var result = await listener.ReceiveAsync().WithCancellation(stoppingToken);
+                    var result = await listener.ReceiveAsync(stoppingToken);
                     _logger.LogInformation("Received UDP packet from {UdpFrom} with length {UdpMessageLength}", result.RemoteEndPoint, result.Buffer.Length);
                     if (!(result.Buffer.Length != 102 || result.Buffer.Take(6).Any(x => x != 0xff)))
                     {
