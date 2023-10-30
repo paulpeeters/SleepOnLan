@@ -1,4 +1,5 @@
-﻿using System.Net.NetworkInformation;
+﻿using SleepOnLan.Services;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 
 namespace SleepOnLan
@@ -8,25 +9,28 @@ namespace SleepOnLan
         private readonly ILogger<UdpService> _logger;
         private readonly IConfiguration _configuration;
         private readonly SleepService _sleepService;
-        HashSet<string> _macAddresses = new();
+        private readonly NetwerkStatusObserver _netwerkStatusObserver;
+        private readonly object _macAdressesLock = new();
+        private HashSet<string> _macAddresses = new();
 
-        public UdpService(ILogger<UdpService> logger, IConfiguration configuration, SleepService sleepService)
+        public UdpService(ILogger<UdpService> logger, IConfiguration configuration, SleepService sleepService, NetwerkStatusObserver netwerkStatusObserver)
         {
             using var ml = new MethodLogger(logger);
 
             _logger = logger;
             _configuration = configuration;
             _sleepService = sleepService;
+            _netwerkStatusObserver = netwerkStatusObserver;
         }
 
-        private void InitializeMacAddresses(object? _ = null)
+        private void InitializeMacAddresses()
         {
             using var ml = new MethodLogger(_logger);
 
             try
             {
                 _logger.LogInformation("Initializing MAC addresses to listen to");
-                _macAddresses.Clear();
+                HashSet<string> _newMacAddresses = new();
                 _configuration.GetSection("UdpService:MacAddresses").Get<string[]>()?.ToList().ForEach(item =>
                 {
                     var macAddress = MacAddressHelpers.StringToMacAddress(item);
@@ -34,7 +38,7 @@ namespace SleepOnLan
                     {
                         var s = MacAddressHelpers.MacAddressToString(macAddress);
                         _logger.LogInformation("Adding MAC Address {MacAddress} from config", s);
-                        _macAddresses.Add(s);
+                        _newMacAddresses.Add(s);
                     }
                 });
 
@@ -43,19 +47,23 @@ namespace SleepOnLan
                     .Where(nic => nic.OperationalStatus == OperationalStatus.Up && (nic.NetworkInterfaceType == NetworkInterfaceType.Ethernet || nic.NetworkInterfaceType == NetworkInterfaceType.Wireless80211))
                     .Select(nic => nic)
                     .ToList()
-                    .ForEach(nic => {
+                    .ForEach(nic =>
+                    {
                         var item = nic.GetPhysicalAddress().GetAddressBytes();
                         if (item.Length == 6)
                         {
                             var s = MacAddressHelpers.MacAddressToString(MacAddressHelpers.ReverseMacAddress(item));
                             _logger.LogInformation("Adding MAC Address {MacAddress} from network interfaces", s);
-                            _macAddresses.Add(s);
+                            _newMacAddresses.Add(s);
                         }
                     });
-
+                lock (_macAdressesLock)
+                {
+                    _macAddresses = _newMacAddresses;
+                }
             }
-            catch (Exception ex) 
-            { 
+            catch (Exception ex)
+            {
                 _logger.LogError(ex, "Exception occurred");
             }
         }
@@ -64,14 +72,20 @@ namespace SleepOnLan
         {
             using var ml = new MethodLogger(_logger);
 
+            InitializeMacAddresses();
+
             long throttleTime = _configuration.GetValue<long>("UdpService:ThrottleTimeInSeconds", 5);
-            long macAdressesRefreshTime = _configuration.GetValue<long>("UdpService:MacAddressesRefreshTimeInMinutes", 15);
-            Timer macAddressesRefreshTimer = new Timer(InitializeMacAddresses, null, 0, macAdressesRefreshTime*60*1000);
-            Timer sleepTimer = new Timer(async (o) => await _sleepService.ExecuteSleepCommand(stoppingToken), null, Timeout.Infinite, Timeout.Infinite);
+
+            System.Timers.Timer throttleTimer = new(throttleTime * 1000);
+            throttleTimer.AutoReset = false;
+            throttleTimer.Elapsed += async (sender, e) => await _sleepService.ExecuteSleepCommand(stoppingToken);
+            throttleTimer.Enabled = false;
 
             int udpPort = _configuration.GetValue<int>("UdpService:Port", 9);
             using UdpClient listener = new UdpClient(udpPort);
             _logger.LogInformation("Started listining on UDP port {UdpPort}", udpPort);
+
+            _netwerkStatusObserver.NetworkChanged += (sender, e) => InitializeMacAddresses();
 
             stoppingToken.ThrowIfCancellationRequested();
             while (!stoppingToken.IsCancellationRequested)
@@ -83,10 +97,16 @@ namespace SleepOnLan
                     if (!(result.Buffer.Length != 102 || result.Buffer.Take(6).Any(x => x != 0xff)))
                     {
                         var macAddress = MacAddressHelpers.MacAddressToString(result.Buffer.Skip(6).Take(6).ToArray());
-                        if (_macAddresses.Contains(macAddress))
+                        bool startSleep = false;
+                        lock (_macAdressesLock)
+                        {
+                            startSleep = _macAddresses.Contains(macAddress);
+                        }
+                        if (startSleep)
                         {
                             _logger.LogInformation("Accepted MAC address {MacAddress}", macAddress);
-                            sleepTimer.Change(throttleTime*1000, Timeout.Infinite);
+                            throttleTimer.Stop();
+                            throttleTimer.Start();
                         }
                         else
                         {

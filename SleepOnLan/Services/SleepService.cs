@@ -12,7 +12,7 @@ namespace SleepOnLan
         private readonly ILogger<SleepService> _logger;
         private readonly IConfiguration _configuration;
 
-        public SleepService (ILogger<SleepService> logger, IConfiguration configuration) 
+        public SleepService(ILogger<SleepService> logger, IConfiguration configuration)
         {
             _logger = logger;
             _configuration = configuration;
@@ -53,6 +53,7 @@ namespace SleepOnLan
             else
             {
                 _logger.LogInformation("Starting sleep command {SleepCommand} with {SleepCommandArguments}", commandInfo.Command, commandInfo.Arguments);
+                await Task.Delay(500);
                 process.Start();
                 process.BeginOutputReadLine();
                 process.BeginErrorReadLine();

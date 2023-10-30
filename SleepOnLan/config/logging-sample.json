@@ -1,17 +1,16 @@
 ﻿{
   "Serilog": {
     "LevelSwitches": {
-      "$consoleSwitch": "Verbose",
-      "$fileSwitch": "Verbose",
-      "$seqSwitch": "Verbose"
+      "consoleSwitch": "Warning",
+      "fileSwitch": "Warning",
+      "seqSwitch": "Warning"
     },
-    "Using": [ "Serilog.Sinks.Console", "Serilog.Sinks.File", "Serilog.Sinks.Seq" ],
+    "Using": [ "Serilog.Sinks.Console", "Serilog.Sinks.File", "Serilog.Sinks.Seq", "Serilog.Enrichers.Environment", "Serilog.Enrichers.Thread" ],
     "MinimumLevel": {
       "Default": "Verbose",
       "Override": {
-        "System": "Debug",
-        "Microsoft": "Debug",
-        "Microsoft.Hosting.Lifetime": "Information"
+        "System": "Warning",
+        "Microsoft": "Warning"
       }
     },
     "WriteTo": [
@@ -35,7 +34,7 @@
         "Args": {
           "serverUrl": "https://localhost/seq",
           "apiKey": "abcdefgh12345678",
-          "levelSwitch": "$seqSwitch"
+          "controlLevelSwitch": "$seqSwitch"
         }
       }
     ],

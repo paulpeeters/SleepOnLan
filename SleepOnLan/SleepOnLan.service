@@ -1,9 +1,10 @@
 [Unit]
-Description=Sleep On Lan
+Description=This service will wait for a WOL packet (standard UDP port 9) that contains the PC's reversed MAC address and put the PC in sleep mode
 After=network.target
 
 [Service]
-ExecStart=/usr/local/SleepOnLan/SleepOnLan
+WorkingDirectory=/opt/SleepOnLan
+ExecStart=/opt/SleepOnLan/SleepOnLan
 Type=exec
 Restart=always
 

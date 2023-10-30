@@ -12,7 +12,7 @@ if "%1"=="--status" goto status
 goto help
 
 :help
-echo Usage: InstallService { --install ^| --uninstall ^| --restart ^| --start ^| --stop ^| --status }
+echo Usage: %0 { --install ^| --uninstall ^| --restart ^| --start ^| --stop ^| --status }
 goto end
 
 :install
