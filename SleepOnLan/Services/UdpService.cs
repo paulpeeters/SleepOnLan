@@ -29,7 +29,19 @@ namespace SleepOnLan
 
             try
             {
-                _logger.LogInformation("Initializing MAC addresses to listen to");
+                _logger.LogInformation("Storing (reversed) MAC addresses to react upon");
+                HashSet<string> _macAddressesToIgnore = new();
+                _configuration.GetSection("UdpService:MacAddressesToIgnore").Get<string[]>()?.ToList().ForEach(item =>
+                {
+                    var macAddress = MacAddressHelpers.StringToMacAddress(item);
+                    if (macAddress is not null)
+                    {
+                        var s = MacAddressHelpers.MacAddressToString(macAddress);
+                        _logger.LogInformation("Marking (reversed) MAC Address {MacAddress} to be ignored", s);
+                        _macAddressesToIgnore.Add(s);
+                    }
+                });
+
                 HashSet<string> _newMacAddresses = new();
                 _configuration.GetSection("UdpService:MacAddresses").Get<string[]>()?.ToList().ForEach(item =>
                 {
@@ -37,8 +49,11 @@ namespace SleepOnLan
                     if (macAddress is not null)
                     {
                         var s = MacAddressHelpers.MacAddressToString(macAddress);
-                        _logger.LogInformation("Adding MAC Address {MacAddress} from config", s);
-                        _newMacAddresses.Add(s);
+                        if (!_macAddressesToIgnore.Contains(s))
+                        {
+                            _logger.LogInformation("Adding (reversed) MAC Address {MacAddress} from config", s);
+                            _newMacAddresses.Add(s);
+                        }
                     }
                 });
 
@@ -53,8 +68,15 @@ namespace SleepOnLan
                         if (item.Length == 6)
                         {
                             var s = MacAddressHelpers.MacAddressToString(MacAddressHelpers.ReverseMacAddress(item));
-                            _logger.LogInformation("Adding MAC Address {MacAddress} from network interfaces", s);
-                            _newMacAddresses.Add(s);
+                            if (!_macAddressesToIgnore.Contains(s))
+                            {
+                                _logger.LogInformation("Adding (reversed) physical MAC Address {MacAddress} from network interfaces", s);
+                                _newMacAddresses.Add(s);
+                            }
+                            else
+                            {
+                                _logger.LogInformation("(Reversed) physical MAC Address {MacAddress} was marked to be ignored", s);
+                            }
                         }
                     });
                 lock (_macAdressesLock)
